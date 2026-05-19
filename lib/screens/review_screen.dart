@@ -147,11 +147,13 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
 
         TextButton.icon(
           onPressed: () {
-            Navigator.push(
+            // Вызываем экран добавления через именованный роут и передаем ID товара
+            Navigator.pushNamed(
               context,
-              MaterialPageRoute(builder: (context) => const AddReviewScreen()),
+              '/add_review',
+              arguments: widget.productId, // Передаем текущий ID товара
             ).then((_) {
-              // При возврате с экрана добавления отзыва, обновляем список
+              // Когда пользователь вернется назад, обновляем список отзывов
               context.read<ReviewCubit>().GetReviews(widget.productId);
             });
           },
@@ -165,7 +167,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
-        ),
+        )
       ],
     );
   }

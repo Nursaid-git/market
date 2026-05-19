@@ -53,8 +53,10 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create: (context) => AuthCubit(),
         ),
+        // Внутри MultiBlocProvider в файле main.dart:
         BlocProvider(
-          create: (context) => HomeCubit(),
+          // Добавляем ..loadProducts() для автоматического вызова функции загрузки
+          create: (context) => HomeCubit()..loadProducts(),
         ),
         BlocProvider(
             create: (context) => IntroCubit()
@@ -64,7 +66,8 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider(create: (context) => TestCubit(TestService()
         ),),
-        BlocProvider(create: (context) => ReviewCubit(ReviewService()))
+        BlocProvider(create: (context) => ReviewCubit(ReviewService())),
+
       ],
       child: MaterialApp(
         routes: {
@@ -74,13 +77,22 @@ class MyApp extends StatelessWidget {
           '/home': (context) => const HomeScreen(),
           '/product_detail': (context) => const ProductDetailScreen(),
           '/test': (context) => const TestScreen(),
-          '/add_review': (context) => const AddReviewScreen(),
+          '/add_review': (context) {
+            // 1. Безопасно достаем ID товара из аргументов перехода
+            final args = ModalRoute.of(context)?.settings.arguments;
+            final productId = (args is String) ? args : '';
+
+            // 2. Передаем этот ID в конструктор экрана создания отзыва
+            return AddReviewScreen(productId: productId);
+          },
           '/review': (context) {
             // Безопасно получаем аргументы роута
             final args = ModalRoute.of(context)?.settings.arguments;
 
             // Если аргументов нет или они не String, подставляем пустую строку ''
             final productId = (args is String) ? args : '';
+
+            print("==== ТЕСТ РОУТА: В main.dart прилетел ID: '$productId' ====");
 
             return ReviewsScreen(productId: productId);
           },

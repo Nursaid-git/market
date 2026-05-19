@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/custom_button.dart';
 import '../core/widgets/size_selector.dart';
+import '../models/product_model.dart'; // 1. Добавили импорт модели товара
 
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({super.key});
@@ -14,6 +15,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 2. Вытаскиваем переданный продукт из аргументов навигатора
+    final product = ModalRoute.of(context)?.settings.arguments as ProductModel?;
+
+    // Защита: если вдруг продукт забыли передать, не роняем приложение
+    if (product == null) {
+      return const Scaffold(
+        body: Center(child: Text("Данные товара не найдены")),
+      );
+    }
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
@@ -22,7 +33,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             // Изображение и кнопки управления
             Stack(
               children: [
-                Image.asset('assets/images/product_large.png', fit: BoxFit.cover, width: double.infinity),
+                // 3. Умная загрузка картинки: сеть или локальный ассет
+                product.imageUrl.startsWith('http')
+                    ? Image.network(product.imageUrl, fit: BoxFit.cover, width: double.infinity, height: 350)
+                    : Image.asset(product.imageUrl, fit: BoxFit.cover, width: double.infinity),
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.all(10),
@@ -51,18 +65,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Men's Printed Pullover Hoodie", style: TextStyle(color: Colors.grey)),
-                          Text("Nike Club Fleece", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Men's Printed Pullover Hoodie", style: TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 4),
+                            // 4. Подставляем реальное название товара
+                            Text(product.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Price", style: TextStyle(color: Colors.grey)),
-                          Text("\$120", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          const Text("Price", style: TextStyle(color: Colors.grey)),
+                          // 5. Подставляем реальную цену товара
+                          Text("\$${product.price.toStringAsFixed(0)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ],
@@ -82,7 +101,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _buildSectionHeader("Size", "Size Guide"),
+                  _buildSectionHeader("Size", "Size Guide", onTap: () {}),
                   SizeSelector(
                     selectedSize: _selectedSize,
                     onSizeSelected: (size) => setState(() => _selectedSize = size),
@@ -95,7 +114,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     style: TextStyle(color: Colors.grey, height: 1.5),
                   ),
                   const SizedBox(height: 20),
-                  _buildSectionHeader("Reviews", "View All"),
+
+                  // 6. НАСТРАИВАЕМ ПЕРЕХОД НА ЭКРАН ОТЗЫВОВ С РЕАЛЬНЫМ ID ТОВАРА
+                  _buildSectionHeader(
+                    "Reviews",
+                    "View All",
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/review',
+                        arguments: product.id, // Передаем живой ID в main.dart роут
+                      );
+                    },
+                  ),
                   const ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: CircleAvatar(backgroundImage: AssetImage('assets/images/user_avatar.png')),
@@ -121,11 +152,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Total Price", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                Text("\$125", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                const Text("Total Price", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                // 7. Обновляем общую цену внизу экрана
+                Text("\$${product.price.toStringAsFixed(0)}", style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 15),
@@ -136,12 +168,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, String actionText) {
+  // Обновили метод заголовка, добавив опциональный клик onTap
+  Widget _buildSectionHeader(String title, String actionText, {VoidCallback? onTap}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-        TextButton(onPressed: () {}, child: Text(actionText, style: const TextStyle(color: Colors.grey))),
+        TextButton(
+          onPressed: onTap,
+          child: Text(actionText, style: const TextStyle(color: Colors.grey)),
+        ),
       ],
     );
   }

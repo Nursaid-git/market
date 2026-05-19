@@ -15,6 +15,7 @@ class ReviewCubit extends Cubit<ReviewState> {
     required String name,
     required String description,
     required double rating,
+    required String productId,
   }) async {
     try {
       emit(ReviewLoading());
@@ -22,6 +23,7 @@ class ReviewCubit extends Cubit<ReviewState> {
         name: name,
         description: description,
         rating: rating,
+        productId: productId,
       );
       emit(ReviewSuccess());
     } catch (e) {

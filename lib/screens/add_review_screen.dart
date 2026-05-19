@@ -1,104 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:untitled2/core/theme/colors.dart';
-import '../../cubit/review/review_cubit.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_input.dart';
+import '../cubit/review/review_cubit.dart';
 
 class AddReviewScreen extends StatefulWidget {
-  const AddReviewScreen({super.key});
+  final String productId; // 1. Добавили поле для ID товара
+
+  const AddReviewScreen({super.key, required this.productId}); // 2. Добавили в конструктор
 
   @override
   State<AddReviewScreen> createState() => _AddReviewScreenState();
 }
 
 class _AddReviewScreenState extends State<AddReviewScreen> {
-  final _nameController = TextEditingController();
-  final _descController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   double _rating = 3.0;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Add Review", style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        title: const Text("Add Review", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        leading: const BackButton(color: Colors.black),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: BlocListener<ReviewCubit, ReviewState>(
-        // СЛУШАТЕЛЬ ДЛЯ НАВИГАЦИИ И ОШИБОК
         listener: (context, state) {
           if (state is ReviewSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Review added successfully!")),
-            );
-            Navigator.pop(context); // Возвращаемся назад после успеха
-          }
-          if (state is ReviewError) {
+            Navigator.pop(context); // Возвращаемся назад при успешном добавлении
+          } else if (state is ReviewError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: Colors.red),
             );
           }
         },
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CustomInput(
-                label: "Name",
-                hint: "Type your name",
-                controller: _nameController,
-              ),
-              const SizedBox(height: 20),
-              CustomInput(
-                label: "How was your experience?",
-                hint: "Describe your experience",
-                controller: _descController,
-                maxLines: 5,
-              ),
-              const SizedBox(height: 25),
-              const Text("Rating", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              const Text("Name", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Text(_rating.toStringAsFixed(1), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Expanded(
-                    child: Slider(
-                      value: _rating,
-                      min: 1.0,
-                      max: 5.0,
-                      divisions: 40,
-                      activeColor: const Color(0xFF3D93F8),
-                      onChanged: (val) => setState(() => _rating = val),
-                    ),
-                  ),
-                  const Text("5.0"),
-                ],
-              ),
-              const Spacer(),
-              // КНОПКА С ОБРАБОТКОЙ ЗАГРУЗКИ
-              BlocBuilder<ReviewCubit, ReviewState>(
-                builder: (context, state) {
-                  return CustomButton(
-                    text: state is ReviewLoading ? "Submitting..." : "Submit Review",
-                    onPressed: state is ReviewLoading
-                        ? () {} // Блокируем кнопку при загрузке
-                        : () {
-                      if (_nameController.text.isNotEmpty && _descController.text.isNotEmpty) {
-                        context.read<ReviewCubit>().CreateReview(
-                          name: _nameController.text,
-                          description: _descController.text,
-                          rating: _rating,
-                        );
-                      }
-                    },
-                  );
-                },
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  hintText: "Type your name",
+                  fillColor: const Color(0xFFF5F6F7),
+                  filled: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
               ),
               const SizedBox(height: 20),
+              const Text("How was your experience ?", style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _descriptionController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: "Describe your experience",
+                  fillColor: const Color(0xFFF5F6F7),
+                  filled: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text("Rating: ${_rating.toStringAsFixed(1)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              Slider(
+                value: _rating,
+                min: 1.0,
+                max: 5.0,
+                divisions: 4,
+                activeColor: const Color(0xFF497FFA),
+                onChanged: (value) => setState(() => _rating = value),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF497FFA)),
+                  onPressed: () {
+                    if (_nameController.text.isEmpty || _descriptionController.text.isEmpty) {
+                      return;
+                    }
+                    // 3. Передаем живой widget.productId в Кубит
+                    context.read<ReviewCubit>().CreateReview(
+                      productId: widget.productId,
+                      name: _nameController.text.trim(),
+                      description: _descriptionController.text.trim(),
+                      rating: _rating,
+                    );
+                  },
+                  child: const Text("Submit Review", style: TextStyle(color: Colors.white)),
+                ),
+              ),
             ],
           ),
         ),

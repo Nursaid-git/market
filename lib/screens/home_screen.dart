@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // 1. Импортируем Bloc
+import '../cubit/home/home_cubit.dart'; // 2. Импортируем Cubit
+import '../models/product_model.dart'; // 3. Импортируем модель продукта
 
 import '../core/widgets/brand_card.dart';
 import '../core/widgets/product_card.dart';
@@ -59,18 +62,58 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             _buildSectionHeader("New Arrival"),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, crossAxisSpacing: 15, mainAxisSpacing: 15, childAspectRatio: 0.65,
-              ),
-              itemCount: 4,
-              itemBuilder: (context, index) => const ProductCard(
-                title: "Nike Sportswear Club Fleece",
-                price: "\$99",
-                imagePath: "assets/images/product_placeholder.png",
-              ),
+
+            // 4. СЛУШАЕМ ПОТОК ДАННЫХ ИЗ SUPABASE
+            BlocBuilder<HomeCubit, HomeState>(
+              builder: (context, state) {
+                if (state is HomeLoading) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF9775FA)));
+                }
+
+                if (state is HomeError) {
+                  return Center(child: Text("Ошибка загрузки: ${state.message}", style: const TextStyle(color: Colors.red)));
+                }
+
+                if (state is HomeLoaded) {
+                  final products = state.products;
+
+                  if (products.isEmpty) {
+                    return const Center(child: Text("В базе данных Supabase пока нет товаров."));
+                  }
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 15,
+                      mainAxisSpacing: 15,
+                      childAspectRatio: 0.65,
+                    ),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+
+                      return GestureDetector(
+                        onTap: () {
+                          // Переходим на экран деталей и передаем ВЕСЬ объект продукта через аргументы
+                          Navigator.pushNamed(
+                            context,
+                            '/product_detail',
+                            arguments: product,
+                          );
+                        },
+                        child: ProductCard(
+                          title: product.name,
+                          price: "\$${product.price.toStringAsFixed(0)}",
+                          imagePath: product.imageUrl,
+                        ),
+                      );
+                    },
+                  );
+                }
+                return const SizedBox();
+              },
             ),
           ],
         ),
